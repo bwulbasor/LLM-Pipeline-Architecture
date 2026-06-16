@@ -15,6 +15,9 @@ figures/
 data/*.csv
 data/ml-10M100K/
 data/ml-10m.zip
+paper/build/
+prompts/
+.tools/
 
 # Local notes
 HANDOFF.md

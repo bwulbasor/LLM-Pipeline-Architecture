@@ -77,6 +77,27 @@ Example:
 python run_pipeline.py --mode local_with_live_small --live-sample-size 1 --live-panel-size 1 --live-debate-rounds 0 --live-reasoning false
 ```
 
+## Lightweight 10-User Study
+
+To add a small human-checkable study on top of the main pipeline, run:
+
+```powershell
+python src/step7_ten_user_study.py prepare
+```
+
+This creates:
+
+- `results/ten_user_study/study_cases.csv`
+- `results/ten_user_study/llm_ratings_local.csv`
+- `results/ten_user_study/human_rating_template.csv`
+
+After a teammate fills the human template and saves it as
+`results/ten_user_study/human_ratings_completed.csv`, compare the ratings with:
+
+```powershell
+python src/step7_ten_user_study.py analyze
+```
+
 ## Repository Hygiene
 
 This repository excludes:
