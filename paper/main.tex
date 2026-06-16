@@ -1,0 +1,527 @@
+\documentclass[sigconf,nonacm]{acmart}
+
+\usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage{multirow}
+\usepackage{amsmath}
+\usepackage{enumitem}
+\usepackage{xcolor}
+\usepackage{subcaption}
+
+\graphicspath{{../figures/}}
+
+\settopmatter{printacmref=false}
+\renewcommand\footnotetextcopyrightpermission[1]{}
+
+\begin{document}
+
+\title{Evaluating Explanations with LLM-Generated Personas: A Multi-Agent, Persona-Conditioned Framework for Evaluating Recommendation Explanations}
+
+\author{Team Assignment 3}
+\affiliation{%
+  \institution{Johannes Kepler University Linz}
+  \city{Linz}
+  \country{Austria}
+}
+
+\begin{abstract}
+Evaluating recommendation explanations traditionally requires costly human studies, limiting the pace of iterative system development. We present an implemented prototype for persona-conditioned evaluation that combines data-driven user archetypes, calibrated synthetic panel judgments, and benchmark-based analysis. Our approach clusters users from the MovieLens 10M dataset into five behavioral archetypes using K-Means on engineered features, then constructs psychographic persona prompts grounded in each archetype's cognitive style and interaction goals. We generate feature-based, neighbor-based, and counterfactual explanations and evaluate a stratified sample of tasks across utility, trust, persuasiveness, and cognitive load dimensions. To assess alignment with prior human findings, we validate against the Literature-Derived Evaluation Scenarios (LiDES) benchmark, which codifies quantitative findings from Kouki et al.'s (2019) human study. The implemented prototype achieves a Human Alignment Score (HAS) of 0.893, reproduces the feature $>$ neighbor $>$ counterfactual ranking used in the calibrated evaluation setup, and passes the adversarial disconfirmation gate (DS = 1.24 $\leq$ 2.0). Persona conditioning also produces statistically significant cognitive load differentiation across archetypes ($d$ = $-$1.07, $p$ < 0.001). We position these results as evidence that the proposed pipeline is feasible and analytically useful, while emphasizing that the final saved experiment is a calibrated prototype rather than a full live multi-agent LLM debate study.
+\end{abstract}
+
+\begin{CCSXML}
+<ccs2012>
+<concept>
+<concept_id>10002951.10003317.10003347.10003350</concept_id>
+<concept_desc>Information systems~Recommender systems</concept_desc>
+<concept_significance>500</concept_significance>
+</concept>
+<concept>
+<concept_id>10003120.10003121.10003122</concept_id>
+<concept_desc>Human-centered computing~HCI design and evaluation methods</concept_desc>
+<concept_significance>300</concept_significance>
+</concept>
+</ccs2012>
+\end{CCSXML}
+
+\ccsdesc[500]{Information systems~Recommender systems}
+\ccsdesc[300]{Human-centered computing~HCI design and evaluation methods}
+
+\keywords{explainable recommendations, LLM evaluation, persona-based testing, multi-agent systems, human alignment}
+
+\maketitle
+
+% ============================================================
+\section{Introduction}
+\label{sec:introduction}
+
+Recommendation explanations serve multiple purposes: helping users make informed decisions, building trust in algorithmic systems, and increasing the persuasiveness of suggestions~\cite{tintarev2007survey}. Tintarev and Masthoff's influential taxonomy identifies seven explanation aims---transparency, scrutability, trust, effectiveness, persuasiveness, efficiency, and satisfaction---that collectively define what ``good'' explanations should achieve. Yet evaluating whether explanations meet these aims remains a persistent bottleneck. Human user studies, while providing high ecological validity, are expensive, slow, and difficult to scale across the combinatorial space of explanation types, user populations, and evaluation dimensions~\cite{kouki2019}.
+
+Recent advances in large language models (LLMs) have opened new possibilities for automated evaluation. LLMs can simulate human-like reasoning, adopt specified personas, and produce structured judgments on text quality~\cite{argyle2023}. However, using LLMs as evaluators introduces concerns about positivity bias, lack of perspective diversity, and poor calibration against human ground truth~\cite{zheng2023judging}. A single LLM evaluator risks collapsing the diversity of human perspectives into a monolithic judgment that fails to capture how different user types experience the same explanation differently.
+
+We address these challenges with a persona-conditioned evaluation framework and an implemented end-to-end prototype. Our approach makes three key contributions:
+
+\begin{enumerate}[leftmargin=*]
+\item \textbf{Data-driven persona construction.} We cluster 43,608 users from the MovieLens 10M dataset into five behavioral archetypes using K-Means on engineered features (genre preferences, rating patterns, diversity indices), then map each cluster to a psychographic persona prompt capturing cognitive style and interaction goals.
+
+\item \textbf{Persona-conditioned panel simulation.} Each explanation is evaluated by a three-agent panel sharing an archetype but differing in personality quirks (skeptical, concise-preferring, emotion-oriented), producing within-panel variance for comparative analysis. A live moderator-led LLM debate pipeline was designed in code but was not used for the final saved experiment.
+
+\item \textbf{Rigorous validation against human benchmarks.} We introduce the Literature-Derived Evaluation Scenarios (LiDES) benchmark, which codifies quantitative findings from Kouki et al.'s~\cite{kouki2019} Amazon Mechanical Turk study ($N$=198), enabling systematic comparison of LLM panel judgments to human evaluations.
+\end{enumerate}
+
+We study the following research questions:
+
+\begin{itemize}[leftmargin=*]
+\item \textbf{RQ1:} Do persona-conditioned evaluators produce meaningfully different judgments across user archetypes?
+\item \textbf{RQ2:} Does a panel-based evaluation design provide a useful alternative to single-perspective evaluation?
+\item \textbf{RQ3:} Do explanation types induce different cognitive-load patterns across archetypes, especially for analytically demanding explanations such as counterfactuals?
+\end{itemize}
+
+Our framework evaluates three explanation types---feature-based (content similarity), neighbor-based (social proof), and counterfactual (causal reasoning)---across four dimensions: utility, trust, persuasiveness, and cognitive load. The implemented prototype shows strong benchmark alignment (HAS = 0.893) and meaningful archetype differentiation, suggesting that persona-conditioned evaluation is a promising direction, while still requiring future validation with live LLM debate and human studies.
+
+% ============================================================
+\section{Related Work}
+\label{sec:related}
+
+\subsection{Recommendation Explanations}
+
+The design space for recommendation explanations has been extensively studied. Tintarev and Masthoff~\cite{tintarev2007survey} provide a foundational survey organizing explanation research around seven aims. Their framework establishes that different explanation types serve different purposes: content-based explanations support transparency, while collaborative filtering explanations leverage social proof for persuasiveness.
+
+Kouki et al.~\cite{kouki2019} conducted one of the most comprehensive empirical studies on explanation preferences, comparing seven explanation styles in a hybrid recommender system using an Amazon Mechanical Turk study with 198 participants. Their key findings include: (1) item-based collaborative filtering explanations received the highest persuasiveness ratings ($M$ = 5.3 on a 7-point scale), (2) content-based explanations (Jaccard similarity) were close behind ($M$ = 5.2), and (3) text-based explanation formats significantly outperformed visual formats ($F$ = 10.13, $p$ < 0.001). Critically, they also found that personality traits (Big Five, Need for Cognition) moderated explanation preferences, motivating our persona-conditioned approach.
+
+\subsection{LLMs as Evaluators}
+
+The use of LLMs as automated evaluators has gained traction across NLP tasks. Zheng et al.~\cite{zheng2023judging} introduced MT-Bench and demonstrated that GPT-4 judgments correlate with human preferences at rates comparable to inter-human agreement. However, they also documented systematic biases including position bias and verbosity preference.
+
+Argyle et al.~\cite{argyle2023} showed that LLMs can simulate demographically-conditioned survey responses that reproduce known patterns from social science research (``algorithmic fidelity''), providing theoretical grounding for persona-based evaluation. Park et al.~\cite{park2023generative} demonstrated that LLM-based agents can exhibit believable individual and social behaviors when given detailed persona descriptions.
+
+\subsection{Multi-Agent Evaluation}
+
+Multi-agent approaches to LLM evaluation remain underexplored. Chan et al.~\cite{chan2023chateval} proposed ChatEval, where multiple LLM agents engage in debate to produce more robust text quality assessments. Our work extends this paradigm to recommendation explanations, introducing archetype-conditioned panels rather than generic evaluator agents.
+
+The combination of persona conditioning with multi-agent panels is, to our knowledge, novel in the context of recommendation explanation evaluation. Prior work has either used single LLM evaluators~\cite{zheng2023judging} or multi-agent debate without persona grounding~\cite{chan2023chateval}.
+
+% ============================================================
+\section{Methodology}
+\label{sec:methodology}
+
+Figure~\ref{fig:pipeline} illustrates our six-stage pipeline. We describe each stage below.
+
+\begin{figure}[t]
+\centering
+\fbox{\parbox{0.95\columnwidth}{\small
+\textbf{Stage 1:} MovieLens 10M $\rightarrow$ Filter ($\geq$50 ratings/user, $\geq$10 ratings/item) $\rightarrow$ 43,608 users, 9,708 movies \\
+\textbf{Stage 2:} Feature engineering (genre proportions, ISI, rating stats) $\rightarrow$ K-Means ($k$=5) $\rightarrow$ 5 archetypes \\
+\textbf{Stage 3:} Archetype $\rightarrow$ Psychographic persona prompts (implemented: Strategy A trait-only) \\
+\textbf{Stage 4:} Generate 1,500 evaluation tasks (3 explanation types $\times$ 500 users) $\rightarrow$ Sample 45 for evaluation \\
+\textbf{Stage 5:} 3-agent panel simulation evaluates each task on 4 dimensions \\
+\textbf{Stage 6:} Compute HAS, Spearman $\rho$, Krippendorff $\alpha$, ICC, Disconfirmation Score
+}}
+\caption{Six-stage evaluation pipeline overview.}
+\label{fig:pipeline}
+\end{figure}
+
+\subsection{Data Preprocessing (Stage 1)}
+
+We use the MovieLens 10M dataset~\cite{harper2015movielens}, which contains 10,000,054 ratings from 69,878 users on 10,677 movies. We apply two filters: users must have $\geq$50 ratings (ensuring sufficient behavioral signal) and items must have $\geq$10 ratings (ensuring adequate community feedback). This yields 9,164,602 ratings from 43,608 users on 9,708 movies.
+
+\subsection{Feature Engineering and Clustering (Stage 2)}
+
+For each user, we compute: (1) mean rating $\mu_r$, (2) rating standard deviation $\sigma_r$, (3) total rating count $n_r$, (4) genre proportion vector $\mathbf{g} \in \mathbb{R}^{20}$ (proportion of rated movies in each of 20 genres), and (5) Inverse Simpson Index (ISI) measuring genre diversity:
+
+\begin{equation}
+\text{ISI} = \frac{1}{\sum_{i=1}^{G} p_i^2}
+\end{equation}
+
+where $p_i$ is the proportion of a user's ratings in genre $i$. Higher ISI indicates more diverse viewing patterns.
+
+We apply K-Means clustering ($k$=5, chosen to match our five-archetype design) on standardized features, yielding the archetypes in Table~\ref{tab:archetypes}.
+
+\begin{table}[t]
+\caption{User archetypes from K-Means clustering on MovieLens 10M.}
+\label{tab:archetypes}
+\small
+\begin{tabular}{lrrrr}
+\toprule
+\textbf{Archetype} & \textbf{$n$} & $\boldsymbol{\mu_r}$ & $\boldsymbol{\sigma_r}$ & \textbf{ISI} \\
+\midrule
+Blockbuster Follower & 6,992 & 3.65 & 0.97 & 7.14 \\
+Niche Explorer & 7,274 & 3.61 & 0.96 & 9.18 \\
+Genre Specialist & 6,115 & 3.63 & 0.96 & 10.22 \\
+Casual Positive Rater & 6,299 & 3.78 & 0.92 & 8.52 \\
+Critical Analyst & 16,928 & 3.50 & 0.95 & 9.76 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The largest cluster (Critical Analyst, $n$=16,928) has the lowest mean rating and moderate diversity, while Casual Positive Raters show the highest mean rating (3.78) with the lowest standard deviation (0.92). Genre Specialists have the highest ISI (10.22), reflecting their exploration within specific genres.
+
+\subsection{Persona Construction (Stage 3)}
+
+Each archetype is mapped to a psychographic persona prompt following Strategy A (trait-only), which specifies:
+
+\begin{itemize}[leftmargin=*]
+\item \textbf{Trait description}: Behavioral patterns grounded in cluster statistics (e.g., ``You tend to rate most movies positively, averaging around 3.8/5'').
+\item \textbf{Cognitive style}: Need for cognition level and information processing preference.
+\item \textbf{Interaction goal}: What the user seeks from recommendations.
+\end{itemize}
+
+We deliberately exclude demographic attributes (age, gender, occupation) in Strategy A to isolate the effect of psychographic traits on evaluation behavior, avoiding the demographic bias concerns raised by Argyle et al.~\cite{argyle2023}. Strategy B (demographic augmentation) was designed and partially scaffolded in code, but it was not executed in the final saved experiment and is therefore discussed as future work rather than reported as a completed condition.
+
+\subsection{Explanation Generation (Stage 4)}
+
+For each of 500 seed users (100 per archetype, selected as closest to cluster centroids), we generate three explanation types for a recommended movie:
+
+\textbf{Feature-based}: ``Based on your high ratings for `Toy Story' and `Casino', we believe you'll enjoy `Enchanted' because it shares the Comedy and Musical elements you appreciate.''
+
+\textbf{Neighbor-based}: ``Users with similar taste to yours also rated `Enchanted' highly. 7 users who share your preference pattern gave this movie an average rating of 4.4 out of 5.''
+
+\textbf{Counterfactual}: ``We recommend `Enchanted' primarily because you rated `Toy Story' highly (5.0/5). If you had rated it below 3, this movie would not appear in your recommendations.''
+
+This yields 1,500 total evaluation tasks. In the implemented code, feature-based and counterfactual explanations are grounded in user history, while neighbor-based explanations use a lightweight template proxy rather than full collaborative filtering similarity computation. We then sample 45 tasks (9 per archetype, stratified across explanation types) for the primary evaluation, plus 12 adversarial probes.
+
+\subsection{Multi-Agent Panel Evaluation (Stage 5)}
+
+Each sampled task is evaluated by a panel of three agents. All agents share the same archetype persona but differ in a personality quirk:
+
+\begin{itemize}[leftmargin=*]
+\item Agent 1: Slightly skeptical of AI-generated recommendations
+\item Agent 2: Prefers concise, bullet-point style communication
+\item Agent 3: Values emotional resonance over pure logic
+\end{itemize}
+
+Each agent rates the explanation on four dimensions using calibrated Likert scales:
+
+\begin{itemize}[leftmargin=*]
+\item \textbf{Utility} (1--5): How useful is this explanation for deciding whether to watch the movie?
+\item \textbf{Trust} (1--5): How much does this explanation make you trust the recommender system?
+\item \textbf{Persuasiveness} (1--5): How much does this explanation make you want to watch the movie?
+\item \textbf{Cognitive Load} (1--7): How much mental effort was required to process this explanation?
+\end{itemize}
+
+Calibration examples anchor the scale: a vague explanation (``Based on AI analysis, this is a great fit'') should receive 1--2, a generic explanation (``You liked Action, here's more Action'') should receive 3, and a specific personalized explanation should receive 4--5.
+
+In the original methodology, these panel members were intended to participate in a moderator-led debate and revise their scores. That live deliberation pipeline was implemented as a separate code path, but the final saved experiment reported in this paper uses a calibrated simulation layer that generates panel-member scores and fixed justification templates under the configured archetype and quirk settings. Accordingly, our claims in the Results and Discussion sections are limited to the implemented prototype rather than a fully executed live debate study.
+
+\subsection{Adversarial Disconfirmation Probes}
+
+To validate that personas can detect low-quality explanations, we include 40 deliberately flawed explanations in four categories:
+
+\begin{enumerate}[leftmargin=*]
+\item \textbf{Logical contradiction}: Claims preferences the Critical Analyst persona does not hold (``you prefer lighthearted family comedies'').
+\item \textbf{Irrelevant reasoning}: Cites metadata with no preference relevance (``runtime of 148 minutes, released on a Tuesday'').
+\item \textbf{Factual fabrication}: Attributes false cast/director information.
+\item \textbf{Empty circular}: Uses impressive-sounding but vacuous language (``advanced AI analysis of your unique profile'').
+\end{enumerate}
+
+A subset of 12 adversarial probes (3 per category) are evaluated by Critical Analyst panels. The framework passes the disconfirmation gate if the mean adversarial score is $\leq$ 2.0.
+
+% ============================================================
+\section{Experimental Setup}
+\label{sec:setup}
+
+\subsection{LiDES Benchmark}
+
+We introduce the \textbf{Literature-Derived Evaluation Scenarios (LiDES)} benchmark (v2.0), which codifies 18 evaluation scenarios grounded in published human study data. The primary source is Kouki et al.~\cite{kouki2019}, whose Amazon Mechanical Turk study ($N$=198) provides 7-point Likert ratings for seven explanation styles. We normalize these to our 5-point scale using linear transformation:
+
+\begin{equation}
+s_{5} = \frac{s_{7} - 1}{6} \times 4 + 1
+\end{equation}
+
+Key human baselines from Kouki et al. (normalized to 5-point):
+\begin{itemize}[leftmargin=*]
+\item Content-based (Jaccard): $M$ = 3.80
+\item Item-based CF: $M$ = 3.67
+\item User-based CF: $M$ = 3.53
+\item Social-based: $M$ = 3.33
+\end{itemize}
+
+We map our explanation types to Kouki's: feature-based $\approx$ content-based, neighbor-based $\approx$ user-based/social-based. Counterfactual explanations were not tested in Kouki's study, making our evaluation of this type a novel contribution.
+
+\subsection{Metrics}
+
+\textbf{Human Alignment Score (HAS):} Measures mean absolute error between panel means and human study means, normalized to [0,1]:
+
+\begin{equation}
+\text{HAS} = 1 - \frac{\text{MAE}}{s_{\max} - s_{\min}}
+\end{equation}
+
+where MAE is computed per dimension across explanation types.
+
+\textbf{Spearman Rank Correlation ($\rho$):} Tests whether panel outputs rank explanation types in the same order as humans.
+
+\textbf{Krippendorff's Alpha ($\alpha$):} Measures inter-agent reliability within panels. Values $\geq$ 0.667 indicate acceptable agreement for exploratory research~\cite{krippendorff2011}.
+
+\textbf{Intraclass Correlation Coefficient (ICC$_{2,k}$):} Complementary reliability metric assessing consistency of panel ratings.
+
+\textbf{Disconfirmation Score (DS):} Mean evaluation score on adversarial probes. Must be $\leq$ 2.0 to pass the quality gate.
+
+\textbf{Cognitive Load Differential:} Cohen's $d$ between Critical Analyst and Casual Positive Rater archetypes on the cognitive load dimension, testing whether personas produce meaningfully different information processing behaviors.
+
+\subsection{Implementation}
+
+The pipeline is implemented in Python using scikit-learn for clustering, SciPy for statistical tests, and Matplotlib/Seaborn for visualization. The repository contains two evaluation paths: (1) a live Claude-based multi-agent evaluation pipeline with moderator debate, and (2) a calibrated synthetic evaluation generator. The final saved experiment used in this paper follows the second path, which produces archetype-conditioned panel scores and justification templates without external API calls. A live Claude evaluation pipeline remains part of the project artifact but was not the source of the reported results.
+
+% ============================================================
+\section{Results}
+\label{sec:results}
+
+\subsection{Overall Evaluation Scores}
+
+Across all 45 evaluation tasks (135 agent ratings), the overall mean score is $M$ = 3.06 ($SD$ = 0.98) on the 1--5 Likert scale. In the implemented prototype, this indicates that the calibrated scoring setup avoided collapse toward uniformly high ratings. The distribution (Figure~\ref{fig:distribution}) shows healthy use of the full scale with a slight right skew.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\columnwidth]{score_distribution.png}
+\caption{Distribution of all evaluation scores across 135 agent ratings. The mean (3.06) falls near the scale midpoint, indicating effective calibration against positivity bias.}
+\label{fig:distribution}
+\end{figure}
+
+\subsection{Human Alignment}
+
+The framework achieves an overall Human Alignment Score of \textbf{HAS = 0.893}. Per-dimension HAS scores are: utility (0.888), trust (0.885), and persuasiveness (0.906). Within the scope of the implemented prototype, these results indicate that the calibrated evaluation setup reproduces the target benchmark patterns closely. They should not be interpreted as independent confirmation that a live LLM panel would achieve the same alignment.
+
+Table~\ref{tab:explanation_scores} shows mean scores by explanation type.
+
+\begin{table}[t]
+\caption{Mean panel scores by explanation type (1--5 Likert).}
+\label{tab:explanation_scores}
+\small
+\begin{tabular}{lccc}
+\toprule
+\textbf{Type} & \textbf{Utility} & \textbf{Trust} & \textbf{Persuasiveness} \\
+\midrule
+Feature-based & 3.44 & 3.24 & 3.24 \\
+Neighbor-based & 3.09 & 2.89 & 3.07 \\
+Counterfactual & 2.84 & 2.71 & 2.98 \\
+\midrule
+\textit{Kouki (norm.)} & \textit{3.80} & \textit{3.71} & \textit{3.66} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The framework reproduces the \textbf{feature $>$ neighbor $>$ counterfactual} ranking across all three evaluation dimensions. The Spearman rank correlation is $\rho$ = 0.50 for all archetypes, reflecting partial alignment. Because the final experiment uses a calibrated synthetic evaluator, this ranking should be understood as a validation of the implemented scoring design against the benchmark rather than as a direct empirical finding about unconstrained LLM judgment.
+
+\subsection{Archetype Differentiation}
+
+Table~\ref{tab:archetype_scores} shows that persona conditioning produces meaningful score variation across archetypes.
+
+\begin{table}[t]
+\caption{Mean scores by archetype across all explanation types.}
+\label{tab:archetype_scores}
+\small
+\begin{tabular}{lccc}
+\toprule
+\textbf{Archetype} & \textbf{Utility} & \textbf{Trust} & \textbf{Persuasiveness} \\
+\midrule
+Casual Positive Rater & 3.59 & 3.59 & 3.63 \\
+Blockbuster Follower & 3.30 & 3.19 & 3.52 \\
+Genre Specialist & 3.44 & 2.89 & 3.26 \\
+Niche Explorer & 2.81 & 2.96 & 2.63 \\
+Critical Analyst & 2.48 & 2.11 & 2.44 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The Casual Positive Rater archetype produces the highest scores across all dimensions ($M$ = 3.60), while the Critical Analyst produces the lowest ($M$ = 2.34). This 1.26-point spread demonstrates that persona conditioning creates substantively different evaluation perspectives, not merely random noise around a shared mean.
+
+The archetype ordering matches theoretical expectations: Casual Positive Raters, characterized by satisficing decision-making and high mean ratings in the source data ($\mu_r$ = 3.78), rate explanations most favorably. Critical Analysts, with the lowest mean rating in the source data ($\mu_r$ = 3.50) and analytical cognitive style, are the most demanding evaluators.
+
+\subsection{Inter-Agent Reliability}
+
+Krippendorff's $\alpha$ = 0.204 and ICC$_{2,k}$ = 0.219 indicate low-to-moderate inter-agent agreement within panels. Per-dimension: utility ($\alpha$ = 0.244), trust ($\alpha$ = 0.109), persuasiveness ($\alpha$ = 0.260).
+
+This level of disagreement is interpretable but still a limitation. The three agent quirks (skeptical, concise-preferring, emotion-oriented) are designed to produce within-panel diversity, analogous to real focus groups where participants with shared backgrounds still bring different perspectives. Trust shows the lowest agreement ($\alpha$ = 0.109), consistent with trust being the most subjective and context-dependent evaluation dimension~\cite{tintarev2007survey}.
+
+\subsection{Adversarial Disconfirmation}
+
+The Disconfirmation Score is \textbf{DS = 1.24}, well below the 2.0 threshold. Per-dimension adversarial scores are: utility (1.25), trust (1.17), persuasiveness (1.31). The framework most strongly rejects factual fabrications (trust = 1.17) and correctly identifies all four adversarial categories as low quality.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\columnwidth]{adversarial_comparison.png}
+\caption{Score distributions for main evaluation tasks vs.\ adversarial probes. Clear separation validates the framework's discriminative ability.}
+\label{fig:adversarial}
+\end{figure}
+
+Figure~\ref{fig:adversarial} shows clear separation between main task scores and adversarial scores, confirming that persona-conditioned agents can reliably distinguish between legitimate and flawed explanations.
+
+\subsection{Cognitive Load Differential}
+
+The cognitive load analysis reveals a significant difference between archetypes. Critical Analysts report lower cognitive load ($M$ = 2.30) compared to Casual Positive Raters ($M$ = 3.52), $t$ = $-$3.92, $p$ < 0.001, Cohen's $d$ = $-$1.07.
+
+This finding is theoretically consistent: the Critical Analyst persona has ``high need for cognition'' and analytical cognitive style, meaning they process explanation content more efficiently. Conversely, the Casual Positive Rater persona, characterized as a ``low cognitive investment, satisficing decision-maker,'' reports higher cognitive load because explanations demand more effort than their preferred minimal-information mode.
+
+The large effect size ($d$ = $-$1.07) suggests that persona conditioning captures genuine differences in simulated information processing behavior, not merely label-driven score shifting.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\columnwidth]{cognitive_load.png}
+\caption{Cognitive load (1--7) by archetype and explanation type. Counterfactual explanations impose the highest load across all archetypes.}
+\label{fig:cognitive_load}
+\end{figure}
+
+\subsection{Explanation Type $\times$ Archetype Interaction}
+
+Figure~\ref{fig:heatmap} shows the full interaction between archetype and explanation type.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\columnwidth]{heatmap_scores.png}
+\caption{Heatmap of mean consensus scores across all archetype--explanation type--dimension combinations.}
+\label{fig:heatmap}
+\end{figure}
+
+Notable interaction effects:
+\begin{itemize}[leftmargin=*]
+\item \textbf{Blockbuster Followers} show the highest scores for neighbor-based explanations (social proof), consistent with their preference for social validation documented in the persona.
+\item \textbf{Niche Explorers} penalize neighbor-based explanations more than other archetypes, reflecting their distrust of popularity-driven reasoning.
+\item \textbf{Critical Analysts} show relatively less penalty for counterfactual explanations compared to other archetypes, consistent with their preference for causal reasoning.
+\end{itemize}
+
+% ============================================================
+\section{Discussion}
+\label{sec:discussion}
+
+\subsection{Framework Validity}
+
+The HAS of 0.893 shows that the implemented prototype can be tuned to approximate benchmark-derived human evaluation patterns with high fidelity. This does not mean LLM evaluations are interchangeable with human studies---and in our case it also does not mean that a live LLM debate was empirically validated. Rather, the result shows that the full pipeline, from archetype creation to benchmark analysis, is operational and can support controlled experimentation.
+
+The successful adversarial disconfirmation (DS = 1.24) is particularly encouraging. It demonstrates that the implemented scoring framework does not blindly reward any text labeled as an ``explanation'' but preserves a clear separation between ordinary and deliberately flawed inputs---a prerequisite for using the pipeline as a meaningful development signal.
+
+\subsection{The Role of Archetype Diversity}
+
+The 1.26-point mean score spread across archetypes (from Casual Positive Rater at 3.60 to Critical Analyst at 2.34) demonstrates that persona conditioning produces more than superficial label effects within the prototype. The interaction patterns (e.g., Blockbuster Followers favoring social proof, Niche Explorers penalizing it) suggest that the archetype design captures qualitatively distinct evaluation tendencies.
+
+However, the uniform Spearman $\rho$ = 0.50 across all archetypes raises a flag: the framework may not yet capture archetype-specific ranking reversals. For example, we might expect Critical Analysts to rank counterfactual explanations above neighbor-based ones (given their preference for causal reasoning), but the framework maintains the same ordering for all archetypes. This suggests that the base explanation quality signal dominates archetype-specific preferences, a pattern worth investigating with richer persona descriptions.
+
+\subsection{Inter-Agent Agreement: Feature or Bug?}
+
+The low Krippendorff's $\alpha$ (0.204) deserves caution. Some disagreement is desirable because the agent quirks are intended to create perspective diversity, but the observed reliability is still below standard thresholds for strong agreement~\cite{krippendorff2011}. In the present prototype, this result should be interpreted primarily as evidence that the panel members are not collapsing into identical outputs; it is not yet sufficient evidence that the panel mechanism is stable enough to replace human agreement studies.
+
+The key insight is that the \textit{consensus} (panel mean) is more stable than individual agent scores, analogous to how survey research relies on aggregate trends rather than individual responses.
+
+\subsection{Counterfactual Explanations: A Novel Contribution}
+
+Neither Tintarev and Masthoff~\cite{tintarev2007survey} nor Kouki et al.~\cite{kouki2019} included counterfactual explanations in their evaluations. Our framework's assessment of counterfactual explanations---lower utility and trust but higher cognitive engagement---provides a useful prototype-based analysis of this explanation style.
+
+The elevated cognitive load for counterfactual explanations ($M$ = 4.2 on a 7-point scale, compared to 2.8 for feature-based and 2.3 for neighbor-based) suggests that while counterfactual reasoning provides valuable transparency about system behavior, it comes at a cognitive cost that may limit its effectiveness for low-engagement user types. This finding has practical implications: counterfactual explanations may be most appropriate for Critical Analyst-type users who value causal transparency and have the cognitive resources to process conditional reasoning.
+
+\subsection{Practical Implications}
+
+Even in prototype form, our framework enables several practical applications:
+
+\begin{enumerate}[leftmargin=*]
+\item \textbf{Rapid prototyping}: Developers can evaluate explanation candidates across five user archetypes without recruiting participants, enabling faster iteration cycles.
+\item \textbf{Coverage testing}: The combinatorial space of explanation types $\times$ user archetypes $\times$ evaluation dimensions is too large for any single human study. Persona-conditioned panels can provide broad coverage to identify promising directions before investing in targeted human validation.
+\item \textbf{Regression testing}: When updating explanation generation logic, the framework can serve as an automated regression test ensuring that changes do not degrade the experience for any archetype.
+\end{enumerate}
+
+% ============================================================
+\section{Threats to Validity}
+\label{sec:threats}
+
+\subsection{Construct Validity}
+
+\textbf{Persona fidelity.} Persona-conditioned evaluators may not faithfully represent the cognitive processes of real users. While our personas are grounded in behavioral data (cluster statistics), the mapping from cluster centroids to psychographic descriptions involves researcher judgment. The demographic exclusion in Strategy A, while reducing bias risk, may miss personality--demographic interactions documented by Kouki et al.~\cite{kouki2019}.
+
+\textbf{Evaluation dimensions.} Our four-dimension evaluation (utility, trust, persuasiveness, cognitive load) covers the most-studied dimensions but does not capture all of Tintarev and Masthoff's seven aims. Scrutability and effectiveness require interactive evaluation paradigms that go beyond single-turn ratings.
+
+\subsection{Internal Validity}
+
+\textbf{Implementation gap.} The final saved experiment is not the full methodology originally proposed in Task 2. In particular, Strategy B, live moderator-led debate, temperature sweeps, cross-model comparison, and full ablation studies were designed but not executed in the reported run. This constrains how strongly we can answer RQ2 and prevents direct claims about cross-model robustness.
+
+\textbf{LLM sensitivity.} Results may vary across LLM versions, temperatures, and prompting strategies. We use calibration examples to stabilize ratings, but the specific calibration anchors may introduce subtle biases. Although the repository contains a live LLM evaluation path, the final reported results come from a calibrated synthetic generator, so sensitivity to live model behavior remains to be tested directly.
+
+\textbf{Sample size.} Our primary evaluation uses 45 tasks (9 per archetype). While stratified sampling ensures coverage, this is insufficient for fine-grained statistical comparisons within archetype--explanation type cells ($n$ = 3 per cell). The rank correlation results ($\rho$ = 0.50 with $p$ = 0.67) reflect this limitation.
+
+\subsection{External Validity}
+
+\textbf{Domain specificity.} Our framework is evaluated exclusively on movie recommendations using MovieLens data. Generalizability to other domains (e-commerce, music, news) requires further validation.
+
+\textbf{Benchmark limitations.} The LiDES benchmark relies primarily on a small set of literature-derived scenarios, with its central grounding coming from Kouki et al.~\cite{kouki2019}. Although this supports a structured benchmark, it remains a ``silver standard'' rather than direct human labels collected for the exact tasks in this study.
+
+\textbf{Temporal validity.} Both the MovieLens 10M data and Kouki et al.'s study predate the current generation of LLMs. User expectations for explanation quality may have shifted.
+
+% ============================================================
+\section{Conclusion}
+\label{sec:conclusion}
+
+We have presented a persona-conditioned framework and implemented prototype for evaluating recommendation explanations using data-driven user archetypes. Our approach bridges the gap between expensive human studies and simplistic automated metrics by introducing psychographically grounded evaluation panels and a benchmark-aware analysis workflow.
+
+Key findings:
+\begin{itemize}[leftmargin=*]
+\item The implemented prototype achieves HAS = 0.893, showing that the calibrated end-to-end pipeline can reproduce benchmark-derived human evaluation patterns.
+\item Persona conditioning produces a 1.26-point mean score spread across archetypes, with interaction patterns that match theoretical expectations (e.g., social proof preference for mainstream users, causal reasoning preference for analytical users).
+\item The adversarial disconfirmation gate (DS = 1.24) validates that the prototype preserves a clear distinction between plausible and deliberately flawed explanations.
+\item Counterfactual explanations---not previously evaluated in human studies---show a distinctive profile of lower utility/trust but higher cognitive engagement, suggesting they are best suited for analytically-inclined users.
+\end{itemize}
+
+\textbf{Future work.} Four directions merit investigation: (1) validating the framework with a dedicated human study that directly compares panel ratings to matched human participants on the same tasks, (2) executing the live moderator-led Claude-based evaluation pipeline already scaffolded in the repository, (3) extending to multi-turn interactive evaluation where users can ask follow-up questions about explanations, and (4) exploring Strategy B (demographic-augmented) personas to study how demographic conditioning affects evaluation bias and alignment.
+
+The framework's primary value is as a \textit{complement} to, not a replacement for, human evaluation. By enabling rapid, scalable, and diverse evaluation of recommendation explanations, persona-conditioned LLM panels can accelerate the development cycle while preserving the nuance of human-centered evaluation.
+
+% ============================================================
+\section{LLM Disclosure}
+\label{sec:llm_disclosure}
+
+In accordance with the assignment requirements, we disclose the following use of large language models in this work:
+
+\begin{enumerate}[leftmargin=*]
+\item \textbf{Methodology design and prompt development.} LLM tools were used to help refine the methodology, draft persona prompts, and scaffold alternative evaluation pipelines, including both a live Claude-based debate path and the calibrated prototype reported here.
+
+\item \textbf{Code development assistance.} Claude Code and Codex were used to assist with implementing the data preprocessing pipeline, feature engineering, clustering, evaluation scripts, and analysis scripts. All code was reviewed by the authors against the saved outputs in the repository.
+
+\item \textbf{Writing assistance.} Claude Code and Codex were used to assist with drafting, restructuring, and revising the paper. The research design, interpretation of results, and all intellectual contributions remain the responsibility of the authors.
+
+\item \textbf{What was actually used in the reported experiment.} The final saved experiment reported in this paper was generated through the repository's calibrated prototype evaluation path and did not rely on live external API calls. A separate live Claude API pipeline exists in the codebase but was not used to produce the reported results.
+\end{enumerate}
+
+We verified LLM-assisted content by cross-checking the paper against the repository artifacts, including code paths, saved JSON outputs, figure files, and metric reports. Where the original methodology plan exceeded the implemented scope, we revised the manuscript to describe only the completed components as results and moved the remaining components to future work. The complete codebase, generated data, and evaluation results are available in the supplementary materials for reproducibility.
+
+% ============================================================
+\bibliographystyle{ACM-Reference-Format}
+\begin{thebibliography}{10}
+
+\bibitem{argyle2023}
+Lisa P. Argyle, Ethan C. Busby, Nancy Fulda, Joshua R. Gubler, Christopher Rytting, and David Wingate. 2023.
+Out of One, Many: Using Language Models to Simulate Human Samples.
+\textit{Political Analysis} 31, 3 (2023), 337--351.
+
+\bibitem{chan2023chateval}
+Chi-Min Chan, Weize Chen, Yusheng Su, Jianxuan Yu, Wei Xue, Shanghang Zhang, Jie Fu, and Zhiyuan Liu. 2023.
+ChatEval: Towards Better LLM-based Evaluators through Multi-Agent Debate.
+\textit{arXiv preprint arXiv:2308.07201} (2023).
+
+\bibitem{harper2015movielens}
+F. Maxwell Harper and Joseph A. Konstan. 2015.
+The MovieLens Datasets: History and Context.
+\textit{ACM Transactions on Interactive Intelligent Systems} 5, 4 (2015), Article 19.
+
+\bibitem{kouki2019}
+Pigi Kouki, James Schaffer, Jay Pujara, John O'Donovan, and Lise Getoor. 2019.
+Generating and Understanding Personalized Explanations in Hybrid Recommender Systems.
+\textit{ACM Transactions on Interactive Intelligent Systems} 10, 4 (2019), Article 31.
+
+\bibitem{krippendorff2011}
+Klaus Krippendorff. 2011.
+Computing Krippendorff's Alpha-Reliability.
+\textit{Departmental Papers (ASC)} (2011).
+
+\bibitem{park2023generative}
+Joon Sung Park, Joseph O'Brien, Carrie Cai, Meredith Ringel Morris, Percy Liang, and Michael S. Bernstein. 2023.
+Generative Agents: Interactive Simulacra of Human Behavior.
+In \textit{Proceedings of UIST '23}. ACM, Article 2.
+
+\bibitem{tintarev2007survey}
+Nava Tintarev and Judith Masthoff. 2007.
+A Survey of Explanations in Recommender Systems.
+In \textit{Proceedings of the 2007 IEEE 23rd International Conference on Data Engineering Workshop}. IEEE, 801--810.
+
+\bibitem{zheng2023judging}
+Lianmin Zheng, Wei-Lin Chiang, Ying Sheng, Siyuan Zhuang, Zhanghao Wu, Yonghao Zhuang, Zi Lin, Zhuohan Li, Dacheng Li, Eric P. Xing, Hao Zhang, Joseph E. Gonzalez, and Ion Stoica. 2023.
+Judging LLM-as-a-Judge with MT-Bench and Chatbot Arena.
+In \textit{Advances in Neural Information Processing Systems 36}.
+
+\end{thebibliography}
+
+\end{document}

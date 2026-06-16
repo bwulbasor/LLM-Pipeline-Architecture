@@ -1,0 +1,53 @@
+"""Central configuration for the persona evaluation pipeline."""
+import os
+from pathlib import Path
+
+PROJECT_ROOT = Path(__file__).parent.parent
+DATA_DIR = PROJECT_ROOT / "data"
+RESULTS_DIR = PROJECT_ROOT / "results"
+FIGURES_DIR = PROJECT_ROOT / "figures"
+
+MOVIELENS_URL = "https://files.grouplens.org/datasets/movielens/ml-10m.zip"
+MOVIELENS_DIR = DATA_DIR / "ml-10M100K"
+
+MIN_USER_RATINGS = 50
+MIN_ITEM_RATINGS = 10
+N_ARCHETYPES = 5
+CLUSTER_K_CANDIDATES = (4, 5, 6)
+AUTO_SELECT_K = False
+SEED_USERS_PER_ARCHETYPE = 100
+RANDOM_SEED = 42
+
+MODEL_KNOWLEDGE_CUTOFF_YEAR = 2010
+APPLY_KNOWLEDGE_CUTOFF = True
+
+EXPLANATION_TYPES = ["feature", "neighbor", "counterfactual"]
+EVAL_DIMENSIONS = ["utility", "trust", "persuasiveness"]
+COGNITIVE_LOAD_SCALE = 7
+LIKERT_SCALE = 5
+
+PRIMARY_PANEL_SIZE = 3
+PRIMARY_DEBATE_ROUNDS = 1
+PRIMARY_PERSONA_STRATEGY = "A"
+PRIMARY_PERSONA_GRANULARITY = "thick"
+PRIMARY_CALIBRATION_LEVEL = "calibrated"
+
+TASKS_PER_ARCHETYPE_TYPE = 3
+PRIMARY_ADVERSARIAL_COUNT = 12
+DEFAULT_ABLATION_SAMPLE_SIZE = 10
+DEFAULT_LIVE_SAMPLE_SIZE = 1
+DEFAULT_LIVE_PANEL_SIZE = 1
+DEFAULT_LIVE_DEBATE_ROUNDS = 0
+DEFAULT_LIVE_REASONING = False
+
+TEMPERATURE = 0.7
+TEMPERATURE_GRID = (0.0, 0.3, 0.7, 1.0)
+RANDOM_SEED_GRID = (13, 42, 99)
+PERSONA_HISTORY_LENGTHS = ("short", "long")
+
+LLM_PROVIDER = os.environ.get("LLM_PROVIDER", "openai_compatible")
+OPENAI_COMPAT_BASE_URL = os.environ.get("OPENAI_COMPAT_BASE_URL", "https://integrate.api.nvidia.com/v1")
+OPENAI_COMPAT_API_KEY = os.environ.get("OPENAI_COMPAT_API_KEY", "")
+OPENAI_COMPAT_REASONING = os.environ.get("OPENAI_COMPAT_REASONING", "true").lower() == "true"
+ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
+LLM_MODEL = os.environ.get("LLM_MODEL", "nvidia/nemotron-3-super-120b-a12b")

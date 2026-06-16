@@ -1,0 +1,24 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+
+# Local environment / secrets
+.env
+.env.*
+
+# Generated data artifacts
+results/
+figures/
+data/*.csv
+data/ml-10M100K/
+data/ml-10m.zip
+
+# Local notes
+HANDOFF.md
+
+# OS/editor noise
+.DS_Store
+Thumbs.db

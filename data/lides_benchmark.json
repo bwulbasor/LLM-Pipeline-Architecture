@@ -1,0 +1,276 @@
+{
+  "benchmark_name": "LiDES",
+  "version": "2.0",
+  "description": "Literature-Derived Evaluation Scenarios — codified from Tintarev & Masthoff (2007) survey findings and Kouki et al. (2019) user study results",
+  "notes": {
+    "tintarev_2007": "Survey paper defining 7 explanation aims. Does not contain original user study data. Qualitative directional findings are derived from cited works (Herlocker et al. 2000, Bilgic & Mooney 2005, Sinha & Swearingen 2002, Pu & Chen 2006).",
+    "kouki_2019": "Empirical AMT user study on last.fm with N=198 participants. Uses 7-point Likert scale. Reports persuasiveness across 7 explanation styles + personality correlations.",
+    "scale_note": "Kouki uses 7-point Likert. Our framework uses 5-point Likert. Human scores are normalized: kouki_score_5pt = (kouki_score_7pt - 1) * (4/6) + 1"
+  },
+  "scenarios": [
+    {
+      "scenario_id": "LiDES-001",
+      "source": "Kouki et al. (2019), Figure 3",
+      "archetype": "general",
+      "explanation_pair": ["content-based", "user-based"],
+      "evaluation_dimension": "persuasiveness",
+      "human_result": {
+        "direction": ">",
+        "effect_size": "medium",
+        "mean_rating_a_7pt": 5.2,
+        "mean_rating_b_7pt": 4.8,
+        "mean_rating_a_5pt": 3.8,
+        "mean_rating_b_5pt": 3.53,
+        "n_participants": 198,
+        "significance": "p<0.05"
+      },
+      "description": "Content-based (Jaccard) explanations are more persuasive than user-based explanations for general users"
+    },
+    {
+      "scenario_id": "LiDES-002",
+      "source": "Kouki et al. (2019), Figure 3",
+      "archetype": "general",
+      "explanation_pair": ["content-based", "social-based"],
+      "evaluation_dimension": "persuasiveness",
+      "human_result": {
+        "direction": ">",
+        "effect_size": "large",
+        "mean_rating_a_7pt": 5.2,
+        "mean_rating_b_7pt": 4.5,
+        "mean_rating_a_5pt": 3.8,
+        "mean_rating_b_5pt": 3.33,
+        "n_participants": 198,
+        "significance": "p<0.01"
+      },
+      "description": "Content-based explanations significantly more persuasive than social-based explanations"
+    },
+    {
+      "scenario_id": "LiDES-003",
+      "source": "Kouki et al. (2019), Figure 3",
+      "archetype": "general",
+      "explanation_pair": ["item-based", "popularity-based"],
+      "evaluation_dimension": "persuasiveness",
+      "human_result": {
+        "direction": ">",
+        "effect_size": "medium",
+        "mean_rating_a_7pt": 5.3,
+        "mean_rating_b_7pt": 4.7,
+        "mean_rating_a_5pt": 3.87,
+        "mean_rating_b_5pt": 3.47,
+        "n_participants": 198,
+        "significance": "p<0.05"
+      },
+      "description": "Item-based similarity explanations are more persuasive than non-personalized popularity-based explanations"
+    },
+    {
+      "scenario_id": "LiDES-004",
+      "source": "Kouki et al. (2019), Figure 5, Section 7.5",
+      "archetype": "general",
+      "explanation_pair": ["textual", "visual-venn"],
+      "evaluation_dimension": "persuasiveness",
+      "human_result": {
+        "direction": ">",
+        "effect_size": "large",
+        "mean_rating_a_7pt": 5.5,
+        "mean_rating_b_7pt": 4.8,
+        "mean_rating_a_5pt": 4.0,
+        "mean_rating_b_5pt": 3.53,
+        "n_participants": 198,
+        "significance": "p<0.001",
+        "anova_f": 10.13
+      },
+      "description": "Text explanations perceived as significantly more persuasive than all visual formats (F=10.13, p<0.001)"
+    },
+    {
+      "scenario_id": "LiDES-005",
+      "source": "Kouki et al. (2019), Figure 4, SEM analysis",
+      "archetype": "calm_low_neuroticism",
+      "explanation_pair": ["popularity-based", "item-based-CF"],
+      "evaluation_dimension": "persuasiveness",
+      "human_result": {
+        "direction": ">",
+        "effect_size": "small",
+        "beta": 0.1379,
+        "std_error": 0.054,
+        "significance": "p<0.05"
+      },
+      "description": "Calm (low neuroticism) participants prefer popularity-based explanations over item-based CF"
+    },
+    {
+      "scenario_id": "LiDES-006",
+      "source": "Kouki et al. (2019), Figure 4, SEM analysis",
+      "archetype": "anxious_high_neuroticism",
+      "explanation_pair": ["item-based-CF", "popularity-based"],
+      "evaluation_dimension": "persuasiveness",
+      "human_result": {
+        "direction": ">",
+        "effect_size": "small",
+        "beta": 0.2049,
+        "std_error": 0.082,
+        "significance": "p<0.05"
+      },
+      "description": "Anxious (high neuroticism) participants prefer item-based CF explanations"
+    },
+    {
+      "scenario_id": "LiDES-007",
+      "source": "Kouki et al. (2019), Section 7.6",
+      "archetype": "novice_user",
+      "explanation_pair": ["popularity-based", "content-based"],
+      "evaluation_dimension": "persuasiveness",
+      "human_result": {
+        "direction": "<",
+        "effect_size": "medium",
+        "beta_popularity": 0.891,
+        "significance": "p<0.01"
+      },
+      "description": "Novice users vastly preferred popularity-based explanations more than experienced users (B=0.891**), but content-based still preferred overall"
+    },
+    {
+      "scenario_id": "LiDES-008",
+      "source": "Kouki et al. (2019), Section 7.4",
+      "archetype": "general",
+      "explanation_pair": ["3-4_styles", "1_style"],
+      "evaluation_dimension": "persuasiveness",
+      "human_result": {
+        "direction": ">",
+        "effect_size": "medium",
+        "optimal_count": 4.32,
+        "significance": "p<0.05"
+      },
+      "description": "Users prefer 3-4 explanation styles combined; average preferred count is 4.32"
+    },
+    {
+      "scenario_id": "LiDES-009",
+      "source": "Kouki et al. (2019), Figure 4, SEM",
+      "archetype": "conscientious_dependable",
+      "explanation_pair": ["fewer_styles", "many_styles"],
+      "evaluation_dimension": "persuasiveness",
+      "human_result": {
+        "direction": ">",
+        "effect_size": "small",
+        "significance": "p<0.05"
+      },
+      "description": "Conscientious participants prefer fewer explanation styles; open participants prefer more"
+    },
+    {
+      "scenario_id": "LiDES-010",
+      "source": "Tintarev & Masthoff (2007), citing Herlocker et al. (2000) [18]",
+      "archetype": "general",
+      "explanation_pair": ["histogram-neighbor", "text-only"],
+      "evaluation_dimension": "persuasiveness",
+      "human_result": {
+        "direction": ">",
+        "effect_size": "large",
+        "significance": "reported as best across 21 interfaces"
+      },
+      "description": "Histogram showing how similar users rated an item was the most persuasive format across 21 explanation interfaces tested"
+    },
+    {
+      "scenario_id": "LiDES-011",
+      "source": "Tintarev & Masthoff (2007), citing Sinha & Swearingen (2002) [31]",
+      "archetype": "general",
+      "explanation_pair": ["with-explanation", "without-explanation"],
+      "evaluation_dimension": "transparency",
+      "human_result": {
+        "direction": ">",
+        "effect_size": "large",
+        "significance": "confirmed by user study"
+      },
+      "description": "Transparency confirmed as important by user studies; longer item descriptions positively correlated with perceived usefulness and ease of use"
+    },
+    {
+      "scenario_id": "LiDES-012",
+      "source": "Tintarev & Masthoff (2007), citing Pu & Chen (2006) [28]",
+      "archetype": "general",
+      "explanation_pair": ["structured-tradeoff", "simple-list"],
+      "evaluation_dimension": "trust",
+      "human_result": {
+        "direction": ">",
+        "effect_size": "medium",
+        "significance": "p<0.05"
+      },
+      "description": "Structured trade-off explanations build more trust than simple list presentations"
+    },
+    {
+      "scenario_id": "LiDES-013",
+      "source": "Tintarev & Masthoff (2007), citing Cosley et al. (2003) [10]",
+      "archetype": "general",
+      "explanation_pair": ["with-prediction", "without-prediction"],
+      "evaluation_dimension": "persuasiveness",
+      "human_result": {
+        "direction": ">",
+        "effect_size": "medium",
+        "significance": "users manipulated to rate closer to system prediction"
+      },
+      "description": "Showing system predictions persuades users to rate items closer to the prediction, whether accurate or not"
+    },
+    {
+      "scenario_id": "LiDES-014",
+      "source": "Tintarev & Masthoff (2007), citing Bilgic & Mooney (2005) [5]",
+      "archetype": "general",
+      "explanation_pair": ["content-based-influence", "collaborative-keyword"],
+      "evaluation_dimension": "effectiveness",
+      "human_result": {
+        "direction": ">",
+        "effect_size": "medium",
+        "significance": "measured via pre/post consumption satisfaction"
+      },
+      "description": "Content-based influence explanations helped users make better decisions (effectiveness) compared to collaborative keyword-based"
+    },
+    {
+      "scenario_id": "LiDES-015",
+      "source": "Tintarev & Masthoff (2007), Section 3.8",
+      "archetype": "general",
+      "explanation_pair": ["transparency-focused", "persuasion-focused"],
+      "evaluation_dimension": "efficiency",
+      "human_result": {
+        "direction": "<",
+        "effect_size": "small",
+        "significance": "qualitative finding"
+      },
+      "description": "Trade-off: high-transparency explanations may impede efficiency as users spend more time processing them"
+    },
+    {
+      "scenario_id": "LiDES-016",
+      "source": "Kouki et al. (2019), Section 7.2",
+      "archetype": "general",
+      "explanation_pair": ["hybrid-multi-source", "single-source"],
+      "evaluation_dimension": "perceived_accuracy",
+      "human_result": {
+        "direction": "baseline",
+        "mean_rating_7pt": 5.64,
+        "mean_rating_5pt": 4.09,
+        "n_participants": 198
+      },
+      "description": "Hybrid recommendations achieved mean perceived accuracy of 5.64/7, validating the HyPER framework quality"
+    },
+    {
+      "scenario_id": "LiDES-017",
+      "source": "Kouki et al. (2019), Figure 4, SEM",
+      "archetype": "agreeable_critical",
+      "explanation_pair": ["item-based-CF", "other-styles"],
+      "evaluation_dimension": "persuasiveness",
+      "human_result": {
+        "direction": ">",
+        "effect_size": "small",
+        "beta": -0.2079,
+        "std_error": 0.105,
+        "significance": "p<0.05"
+      },
+      "description": "Critical (low agreeableness) participants showed negative effect on item-based CF persuasiveness"
+    },
+    {
+      "scenario_id": "LiDES-018",
+      "source": "Tintarev & Masthoff (2007), Section 2.3, citing [14, 31]",
+      "archetype": "general",
+      "explanation_pair": ["transparent-interactive", "opaque-static"],
+      "evaluation_dimension": "trust",
+      "human_result": {
+        "direction": ">",
+        "effect_size": "large",
+        "significance": "confirmed across multiple studies"
+      },
+      "description": "Transparency combined with interaction capability increases user trust in recommender systems"
+    }
+  ]
+}
